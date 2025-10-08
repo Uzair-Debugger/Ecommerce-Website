@@ -124,10 +124,7 @@ class Checkout_Summary(db.Model):
         'total_amount' : self.total_amount,
         'created_at' : self.created_at,
         'status' : self.status}
-# -----------------------------------------------------------
 
-
-# -----------------------------------------------------------
 
 @app.route('/')
 def Connection():
@@ -169,7 +166,7 @@ def login():
     user = User.query.filter_by(email=email).first()
 
     if not user or not bcrypt.check_password_hash(user.password, password):
-        return jsonify({"status": "Invalid email or password"}), 400
+        return jsonify({"status": "Invalid email or password"}), 401
 
     role = "admin" if user.email == 'uzair@gmail.com' else "customer"
 

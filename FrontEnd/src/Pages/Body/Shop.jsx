@@ -1,3 +1,8 @@
+
+
+
+
+
 // Shop.jsx
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -28,23 +33,23 @@ const Shop = () => {
 
   const API_URL = "http://127.0.0.1:5000";
 
-  // 🔹 Add Product
+  // ✅ Add Product
   const handleAddNewProduct = async (e) => {
     e.preventDefault();
 
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("price", price);
-    formData.append("category", category);
-    if (file) {
-      formData.append("file", file);
-    } else {
+    if (!file) {
       toast.error("Please select an image file.");
       return;
     }
 
+    const formData = new FormData();
+    formData.append("product_name", name);
+    formData.append("product_price", price);
+    formData.append("product_category", category);
+    formData.append("file", file);
+
     try {
-      const response = await fetch(`${API_URL}/addProduct`, {
+      const response = await fetch(`${API_URL}/product/add`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -52,14 +57,7 @@ const Shop = () => {
         body: formData,
       });
 
-      if (response.status === 401) {
-        toast.error("Unauthorized access.");
-        navigate("/login");
-        return;
-      }
-
       const data = await response.json();
-
       if (!response.ok) {
         toast.error(data.status || "Failed to add new product.");
         return;
@@ -67,47 +65,45 @@ const Shop = () => {
 
       toast.success(data.status);
       setAddProduct(false);
-      fetchProducts(); // refresh list & categories
+      fetchProducts(); // refresh list
     } catch (error) {
       toast.error("Network or server error!");
       console.error("Error!", error);
     }
   };
 
-  // 🔹 Edit/Delete
+  // ✅ Edit/Delete Product
   const changeProductDetails = async (id, action) => {
     try {
       let response;
-
       if (action === "delete") {
-        response = await fetch(`${API_URL}/changeProduct/${id}`, {
+        response = await fetch(`${API_URL}/product/delete/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
       } else if (action === "edit") {
         const formData = new FormData();
-        formData.append("name", editProduct.product_name);
-        formData.append("price", editProduct.product_price);
-        formData.append("category", editProduct.product_category);
+        formData.append("product_name", editProduct.product_name);
+        formData.append("product_price", editProduct.product_price);
+        formData.append("product_category", editProduct.product_category);
         if (editProduct.file) {
           formData.append("file", editProduct.file);
         }
 
-        response = await fetch(`${API_URL}/changeProduct/${id}`, {
+        response = await fetch(`${API_URL}/product/update/${id}`, {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
       }
 
+      const data = await response.json();
       if (!response.ok) {
-        toast.error("Failed to process request");
+        toast.error(data.status || "Failed to process request");
         return;
       }
 
-      const data = await response.json();
-      toast.success(data.status || `${action} successful`);
-
+      toast.success(data.status);
       setEditProduct(null);
       fetchProducts();
     } catch (error) {
@@ -116,18 +112,18 @@ const Shop = () => {
     }
   };
 
-  // 🔹 Fetch Products & Build Categories
+  // ✅ Fetch Products
   const fetchProducts = async (category = "") => {
     const url = category
-      ? `${API_URL}/showProducts?category=${encodeURIComponent(category)}`
-      : `${API_URL}/showProducts`;
+      ? `${API_URL}/product/show?category=${encodeURIComponent(category)}`
+      : `${API_URL}/product/show`;
 
     try {
-      const response = await fetch(url, { method: "GET" });
+      const response = await fetch(url);
+      const data = await response.json();
 
       if (response.status === 404) {
         setAllProducts([]);
-        // toast.info(`No products found for category: ${category}`);
         return;
       }
 
@@ -137,27 +133,18 @@ const Shop = () => {
         return;
       }
 
-      const data = await response.json();
       setAllProducts(data.products);
-
-      // build unique categories dynamically
       const uniqueCategories = [
         ...new Set(data.products.map((p) => p.product_category)),
       ];
       setCategories(uniqueCategories);
-
-      // token check
-      if (token) {
-        const currentTime = Date.now() / 1000;
-        const decodeToken = jwtDecode(token);
-      }
     } catch (error) {
       toast.error("Network/server error!");
       console.error("Error!", error);
     }
   };
 
-  // 🔹 Check Admin & Initial Fetch
+  // ✅ Check Admin & Fetch Initially
   useEffect(() => {
     if (selectedCategory) {
       fetchProducts(selectedCategory);
@@ -165,26 +152,25 @@ const Shop = () => {
       fetchProducts();
     }
 
-    if (!token) {
-      setIsAdmin(false);
-    } else {
-      const decodeToken = jwtDecode(token);
-      const currentTime = Date.now() / 1000;
-      if (decodeToken.role === "admin" && currentTime < decodeToken.exp) {
-        setIsAdmin(true);
-      } else {
+    if (token) {
+      try {
+        const decodeToken = jwtDecode(token);
+        const currentTime = Date.now() / 1000;
+        setIsAdmin(decodeToken.role === "admin" && currentTime < decodeToken.exp);
+      } catch {
         setIsAdmin(false);
       }
     }
   }, [selectedCategory]);
 
-  // 🔹 Add to Cart
+  // ✅ Add to Cart
   const addToCart = async (id, name, price, category) => {
     if (!token) {
       toast.error("Please log in first.");
       navigate("/login");
       return;
     }
+
     const decodeToken = jwtDecode(token);
     const currentTime = Date.now() / 1000;
     if (currentTime > decodeToken.exp) {
@@ -197,7 +183,7 @@ const Shop = () => {
     const method = existingItem ? "PUT" : "POST";
 
     try {
-      const res = await fetch(`${API_URL}/order`, {
+      const res = await fetch(`${API_URL}/order/add`, {
         method: method,
         headers: {
           "Content-Type": "application/json",
@@ -212,13 +198,12 @@ const Shop = () => {
         }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         toast.error(data.status);
         return;
       }
 
-      const data = await res.json();
       toast.success(data.status);
     } catch (error) {
       console.error("Error!", error);
@@ -255,14 +240,12 @@ const Shop = () => {
             <span className="font-semibold text-gray-700">Filter by Category</span>
           </div>
           <div className="flex flex-wrap gap-3">
-            {/* All Products */}
             <NavLink
               to=""
-              className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 ${
-                !selectedCategory
-                  ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md"
-                  : "bg-white text-gray-700 border border-gray-200 hover:border-cyan-400 hover:shadow-md"
-              }`}
+              className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 ${!selectedCategory
+                ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md"
+                : "bg-white text-gray-700 border border-gray-200 hover:border-cyan-400 hover:shadow-md"
+                }`}
             >
               All Products
             </NavLink>
@@ -273,11 +256,10 @@ const Shop = () => {
                 <NavLink
                   key={idx}
                   to={`?category=${encodeURIComponent(cat)}`}
-                  className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 ${
-                    isActive
-                      ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md"
-                      : "bg-white text-gray-700 border border-gray-200 hover:border-cyan-400 hover:shadow-md"
-                  }`}
+                  className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 ${isActive
+                    ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md"
+                    : "bg-white text-gray-700 border border-gray-200 hover:border-cyan-400 hover:shadow-md"
+                    }`}
                 >
                   {cat}
                 </NavLink>
@@ -370,7 +352,7 @@ const Shop = () => {
         </div>
       )}
 
-            {/* Edit Product Modal */}
+      {/* Edit Product Modal */}
       {editProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <form
@@ -476,10 +458,11 @@ const Shop = () => {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={`${API_URL}/uploads/${item.file_name}`}
+                      src={item.image || `${API_URL}/uploads/${item.file_name}`}
                       alt={item.product_name}
                       className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
                     />
+
                     <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full font-medium text-sm">
                       $ {item.product_price}
                     </div>
@@ -545,6 +528,7 @@ const Shop = () => {
           )}
         </div>
       </div>
+
     </div>
   );
 };

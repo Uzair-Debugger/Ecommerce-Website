@@ -27,7 +27,7 @@ export default function Login() {
     try {
       // { formData.email === 'uzair@gmail.com' ? setIsAdmin(true) : setIsAdmin(false) } // Logic preserved
 
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch('http://127.0.0.1:5000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -36,10 +36,7 @@ export default function Login() {
       if (!response.ok) {
         const data = await response.json();
         // Use toast for error notification
-        if(response.status==409){
-          toast.error(data.status)
-          return
-        }
+        toast.error(data.status)
         return;
       }
       
