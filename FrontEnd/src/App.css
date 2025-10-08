@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+
+.grid li{
+    list-style: none;
+    margin: 5px;
+    cursor: pointer;
+    width: max-content;
+}
+.grid li:hover{
+    color: rgb(255, 174, 0);
+}
