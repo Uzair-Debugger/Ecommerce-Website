@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
-from models import Checkout_Summary, Checkout, Order_T
+from models import Checkout_Summary, Checkout, Order_T, Products
 
 checkout_bp = Blueprint('checkout_bp', __name__, url_prefix='/checkout')
 
@@ -24,13 +24,28 @@ def checkout():
     db.session.flush()  # So summary.id becomes available
 
     for item in orders:
+        product_id = item.get('product_id')
+        if not product_id:
+            product = Products.query.filter_by(
+                product_name=item.get('name') or item.get('product_name'),
+                product_price=item.get('price'),
+                product_category=item.get('category')
+            ).first()
+            if product:
+                product_id = product.product_id
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': f"Unable to resolve product for '{item.get('name') or item.get('product_name')}'"
+                }), 400
+
         checkout = Checkout(
             checkout_id=summary.id,
-            product_id=item.get('item_id'),
+            product_id=product_id,
             product_name=item.get('name') or item.get('product_name'),
             unit_price=item.get('price'),
             quantity=item.get('quantity'),
-            subtotal=item.get('price') * item.get('quantity')
+            subtotal=(item.get('price') or 0) * (item.get('quantity') or 0)
         )
         db.session.add(checkout)
 
