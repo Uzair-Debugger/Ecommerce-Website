@@ -18,7 +18,7 @@ def checkout():
     if not orders:
         return jsonify({'status': 'error', 'message': 'Cart is empty'}), 400
     
-    total = sum(item.get('price', 0) * item.get('quantity', 0) for item in orders)
+    total = sum((item.get('price') or 0) * (item.get('quantity') or 0) for item in orders)
     summary = Checkout_Summary(user_id=user_id, total_amount=total)
     db.session.add(summary)
     db.session.flush()  # So summary.id becomes available
@@ -26,17 +26,37 @@ def checkout():
     for item in orders:
         product_id = item.get('product_id')
         if not product_id:
+            name = item.get('name') or item.get('product_name')
+            category = item.get('category')
+            raw_price = item.get('price')
+
+            # Normalize price before DB matching to avoid strict type mismatches.
+            try:
+                price = int(float(raw_price))
+            except (ValueError, TypeError):
+                price = raw_price
+
             product = Products.query.filter_by(
-                product_name=item.get('name') or item.get('product_name'),
-                product_price=item.get('price'),
-                product_category=item.get('category')
+                product_name=name,
+                product_price=price,
+                product_category=category
             ).first()
+
+            if not product and name and category:
+                product = Products.query.filter_by(
+                    product_name=name,
+                    product_category=category
+                ).first()
+
+            if not product and name:
+                product = Products.query.filter_by(product_name=name).first()
+
             if product:
                 product_id = product.product_id
             else:
                 return jsonify({
                     'status': 'error',
-                    'message': f"Unable to resolve product for '{item.get('name') or item.get('product_name')}'"
+                    'message': f"Unable to resolve product for '{name}'. Please refresh cart and try again."
                 }), 400
 
         checkout = Checkout(

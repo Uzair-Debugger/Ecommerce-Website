@@ -8,7 +8,7 @@ const SalesOrder = ({ location }) => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filter, setFilter] = useState('all');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [inCart, setInCart] = useState(location ? true : false);
+  const [inCart, setInCart] = useState(location === "cart");
 
   const statusConfig = {
     pending: { label: "Pending", icon: Clock, color: "bg-yellow-100 text-yellow-800 border-yellow-300" },
@@ -32,9 +32,12 @@ const SalesOrder = ({ location }) => {
       const decodeToken = jwtDecode(token);
       if (decodeToken.role === 'admin') {
         setIsAdmin(true);
+        setInCart(false);
+      } else if (!location) {
+        setInCart(true);
       }
 
-      const response = await fetch(`http://localhost:5000/checkout`, {
+      const response = await fetch(`http://localhost:5000/checkout/`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -184,8 +187,12 @@ const SalesOrder = ({ location }) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Orders</h1>
-          <p className="text-gray-600">Manage and track all customer orders</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {inCart ? "Order Summary" : "Sales Orders"}
+          </h1>
+          <p className="text-gray-600">
+            {inCart ? "Track your recent checkout orders" : "Manage and track all customer orders"}
+          </p>
         </div>
 
         <div className="mb-6 flex gap-2 flex-wrap">

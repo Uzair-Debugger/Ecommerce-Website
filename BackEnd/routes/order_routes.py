@@ -44,9 +44,12 @@ def fetch_orders():
 @order_bp.route('/delete/<int:item_id>', methods=['DELETE'])
 @jwt_required()
 def delete_order_item(item_id):
+    user_id = int(get_jwt_identity())
     item = Order_T.query.get(item_id)
     if not item:
         return jsonify({'status': 'Item not found'}), 404
+    if item.user_id != user_id:
+        return jsonify({'status': 'Unauthorized'}), 403
 
     db.session.delete(item)
     db.session.commit()
@@ -56,6 +59,7 @@ def delete_order_item(item_id):
 @order_bp.route('/update/<int:item_id>', methods=['PUT'])
 @jwt_required()
 def update_quantity(item_id):
+    user_id = int(get_jwt_identity())
     data = request.json
     new_qty = data.get('quantity')
     if new_qty is None or new_qty < 1:
@@ -64,6 +68,8 @@ def update_quantity(item_id):
     order_item = Order_T.query.get(item_id)
     if not order_item:
         return jsonify({'status': 'Item not found'}), 404
+    if order_item.user_id != user_id:
+        return jsonify({'status': 'Unauthorized'}), 403
     order_item.quantity = new_qty
     db.session.commit()
     return jsonify({'status': 'Quantity updated successfully'}), 200

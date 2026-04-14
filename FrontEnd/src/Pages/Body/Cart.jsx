@@ -3,21 +3,20 @@
 import { useEffect, useState } from "react";
 import { useCart } from "../Context/CartContext";
 import { jwtDecode } from "jwt-decode";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import OrderSummary from "./OrderSummary";
-import { Package, Truck, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Package, Truck, CheckCircle, Clock, XCircle, ChevronDown } from "lucide-react";
 
 function Cart() {
-  const { cart, setCart } = useCart([]);
+  const { setCart } = useCart([]);
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [allowed, setAllowed] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const [historyFilter, setHistoryFilter] = useState('all');
-  // const [expandedOrder, setExpandedOrder] = useState(null);
 
 
   const totalPrice = orders.reduce((acc, order) => acc + (order.price * order.quantity), 0);
@@ -87,7 +86,7 @@ function Cart() {
       } else {
         setAllowed(false);
       }
-    } catch (error) {
+    } catch {
       console.log("Invalid Token");
       setAllowed(false);
     }
@@ -108,7 +107,7 @@ function Cart() {
       }
 
       const data = await response.json();
-      setOrderHistory(Array.isArray(data) ? data : []);
+      setOrderHistory(Array.isArray(data?.history) ? data.history : []);
 
     } catch (error) {
       console.error("Error:", error);
@@ -117,10 +116,6 @@ function Cart() {
       setHistoryLoading(false);
     }
   };
-
-  const filteredOrderHistory = historyFilter === 'all'
-    ? orderHistory
-    : orderHistory.filter(order => order.status === historyFilter);
 
   const handleDelete = async (item_id) => {
     try {
@@ -215,7 +210,8 @@ function Cart() {
       });
 
       if (!response.ok) {
-        toast.error("Checkout failed. Please try again.");
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || errorData.status || "Checkout failed. Please try again.");
         setIsCheckingOut(false);
         return;
       }
@@ -227,6 +223,7 @@ function Cart() {
         setOrders([]);
         setCart([]);
         fetchHistory(token);
+        navigate("/ordersummary");
       } else {
         toast.error(data.message || "Checkout failed");
       }
@@ -490,7 +487,9 @@ function Cart() {
             onClick={() => setShowHistory(!showHistory)}
             className="flex items-center justify-between w-full mb-4 p-4 bg-white rounded-lg shadow-sm border"
           >
-            <h2 className="text-xl font-bold text-gray-900">Order History</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {historyLoading ? "Order History (Loading...)" : `Order History (${orderHistory.length})`}
+            </h2>
             <ChevronDown className={`w-5 h-5 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
           </button>
 

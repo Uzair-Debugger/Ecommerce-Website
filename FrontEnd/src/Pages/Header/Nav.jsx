@@ -3,7 +3,6 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { User, ShoppingCart, MenuIcon, X } from "lucide-react";
 import { useCart } from "../Context/CartContext";
 import { jwtDecode } from "jwt-decode";
-import Logo from '../../assets/mylogo.png'
 
 const Nav = () => {
   const { cart, setCart } = useCart();
@@ -13,8 +12,6 @@ const Nav = () => {
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [orders, setOrders] = useState([]);
-
   // 🔹 Helper for NavLink styling
   const navLinkClass = ({ isActive }) =>
     isActive
@@ -67,15 +64,13 @@ const Nav = () => {
         })
           .then((res) => res.json())
           .then((data) => {
-            if (data.status === "success") {
-              setOrders(data.orders);
+            if (Array.isArray(data)) {
               if (token && decodeToken.exp > currentTime) {
-                setCart(data.orders);
+                setCart(data);
               } else {
                 setCart([]);
               }
             } else {
-              setOrders([]);
               setCart([]);
             }
           })
@@ -83,7 +78,7 @@ const Nav = () => {
       } else {
         setIsTokenValid(false);
       }
-    } catch (error) {
+    } catch {
       console.log("Invalid Token");
       setIsTokenValid(false);
     }
