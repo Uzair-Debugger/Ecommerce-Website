@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import OrderSummary from "./OrderSummary";
 import { Package, Truck, CheckCircle, Clock, XCircle, ChevronDown } from "lucide-react";
+import { apiUrl } from "../../config/api";
 
 function Cart() {
   const { setCart } = useCart([]);
@@ -56,7 +57,7 @@ function Cart() {
       if (decodeToken.exp > currentTime) {
         setAllowed(true);
 
-        fetch("http://localhost:5000/order/fetch", {
+        fetch(apiUrl("/order/fetch"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -95,7 +96,7 @@ function Cart() {
   const fetchHistory = async (token) => {
     setHistoryLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/checkout/history', {
+      const response = await fetch(apiUrl("/checkout/history"), {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -119,7 +120,7 @@ function Cart() {
 
   const handleDelete = async (item_id) => {
     try {
-      const response = await fetch(`http://localhost:5000/order/delete/${item_id}`, {
+      const response = await fetch(apiUrl(`/order/delete/${item_id}`), {
         method: 'DELETE',
         body: JSON.stringify({ id: item_id }),
         headers: {
@@ -154,7 +155,7 @@ function Cart() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/order/update/${item_id}`, {
+      const response = await fetch(apiUrl(`/order/update/${item_id}`), {
         method: 'PUT',
         body: JSON.stringify({ id: item_id, quantity: newQuantity }),
         headers: {
@@ -197,7 +198,7 @@ function Cart() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch('http://localhost:5000/checkout/create', {
+      const response = await fetch(apiUrl("/checkout/create"), {
         method: 'POST',
         body: JSON.stringify({
           orders: orders,

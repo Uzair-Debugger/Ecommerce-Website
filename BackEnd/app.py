@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
-from datetime import timedelta
 import os
 
 from config import Config
@@ -31,7 +30,7 @@ def create_app():
 
     CORS(
         app,
-        resources={r"/*": {"origins": "*"}},
+        resources={r"/*": {"origins": app.config['CORS_ORIGINS']}},
         allow_headers=["Content-Type", "Authorization"],
         expose_headers=["Authorization"],
     )

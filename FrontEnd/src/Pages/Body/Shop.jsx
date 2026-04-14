@@ -10,6 +10,7 @@ import { X, Plus, Edit2, Trash2, Filter, ShoppingCart } from "lucide-react";
 import { jwtDecode } from "jwt-decode";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../Context/CartContext";
+import { API_BASE_URL, apiUrl } from "../../config/api";
 
 const Shop = () => {
   const [addProduct, setAddProduct] = useState(false);
@@ -31,8 +32,6 @@ const Shop = () => {
   const { cart, setCart } = useCart();
   const token = localStorage.getItem("token");
 
-  const API_URL = "http://127.0.0.1:5000";
-
   // ✅ Add Product
   const handleAddNewProduct = async (e) => {
     e.preventDefault();
@@ -49,7 +48,7 @@ const Shop = () => {
     formData.append("file", file);
 
     try {
-      const response = await fetch(`${API_URL}/product/add`, {
+      const response = await fetch(apiUrl("/product/add"), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -77,7 +76,7 @@ const Shop = () => {
     try {
       let response;
       if (action === "delete") {
-        response = await fetch(`${API_URL}/product/delete/${id}`, {
+        response = await fetch(apiUrl(`/product/delete/${id}`), {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -90,7 +89,7 @@ const Shop = () => {
           formData.append("file", editProduct.file);
         }
 
-        response = await fetch(`${API_URL}/product/update/${id}`, {
+        response = await fetch(apiUrl(`/product/update/${id}`), {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -115,8 +114,8 @@ const Shop = () => {
   // ✅ Fetch Products
   const fetchProducts = async (category = "") => {
     const url = category
-      ? `${API_URL}/product/show?category=${encodeURIComponent(category)}`
-      : `${API_URL}/product/show`;
+      ? apiUrl(`/product/show?category=${encodeURIComponent(category)}`)
+      : apiUrl("/product/show");
 
     try {
       const response = await fetch(url);
@@ -201,7 +200,7 @@ const Shop = () => {
     const method = existingItem ? "PUT" : "POST";
 
     try {
-      const res = await fetch(`${API_URL}/order/add`, {
+      const res = await fetch(apiUrl("/order/add"), {
         method: method,
         headers: {
           "Content-Type": "application/json",
@@ -476,7 +475,7 @@ const Shop = () => {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={item.image || `${API_URL}/uploads/${item.file_name}`}
+                      src={item.image || `${API_BASE_URL}/uploads/${item.file_name}`}
                       alt={item.product_name}
                       className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
                     />

@@ -41,7 +41,7 @@ def add_product():
     db.session.add(new_product)
     db.session.commit()
 
-    image_url = f"http://127.0.0.1:5000/uploads/{filename}"
+    image_url = f"{current_app.config['PUBLIC_BASE_URL']}/uploads/{filename}"
 
     return jsonify({
         'status': 'Product added successfully',
@@ -60,7 +60,7 @@ def show_products():
 
     product_list = []
     for p in products:
-        image_url = f"http://127.0.0.1:5000/uploads/{p.file_name}" if p.file_name else None
+        image_url = f"{current_app.config['PUBLIC_BASE_URL']}/uploads/{p.file_name}" if p.file_name else None
         product_list.append({
             'product_id': p.product_id,
             'product_name': p.product_name,

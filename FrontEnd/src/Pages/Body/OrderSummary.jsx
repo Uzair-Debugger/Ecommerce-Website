@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Package, Truck, CheckCircle, Clock, XCircle, Trash2, Eye, ChevronDown } from "lucide-react";
 import { jwtDecode } from "jwt-decode";
+import { apiUrl } from "../../config/api";
 
 const SalesOrder = ({ location }) => {
   const [checkoutItems, setCheckoutItems] = useState([]);
@@ -37,7 +38,7 @@ const SalesOrder = ({ location }) => {
         setInCart(true);
       }
 
-      const response = await fetch(`http://localhost:5000/checkout/`, {
+      const response = await fetch(apiUrl("/checkout/"), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -62,7 +63,7 @@ const SalesOrder = ({ location }) => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch(`http://localhost:5000/checkout/${orderId}`, {
+      const response = await fetch(apiUrl(`/checkout/${orderId}`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,7 +97,7 @@ const SalesOrder = ({ location }) => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch(`http://localhost:5000/checkout/${orderId}`, {
+      const response = await fetch(apiUrl(`/checkout/${orderId}`), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

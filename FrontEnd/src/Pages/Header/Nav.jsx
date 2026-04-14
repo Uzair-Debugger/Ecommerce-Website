@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { User, ShoppingCart, MenuIcon, X } from "lucide-react";
 import { useCart } from "../Context/CartContext";
 import { jwtDecode } from "jwt-decode";
+import { apiUrl } from "../../config/api";
 
 const Nav = () => {
   const { cart, setCart } = useCart();
@@ -55,7 +56,7 @@ const Nav = () => {
       if (decodeToken.exp > currentTime) {
         setIsTokenValid(true);
 
-        fetch("http://localhost:5000/order/fetch", {
+        fetch(apiUrl("/order/fetch"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
