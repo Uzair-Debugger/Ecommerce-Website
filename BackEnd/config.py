@@ -5,13 +5,22 @@ try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    # Keep app functional even if python-dotenv isn't installed.
-    pass
+    # Fallback: manually load .env if python-dotenv is unavailable.
+    env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as env_file:
+            for line in env_file:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                os.environ.setdefault(key, value)
 
 class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv(
-        'DATABASE_URL',
-        'mysql+pymysql://root:@localhost/flask_ecommerce'
+        'DATABASE_URL'
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'super_secret_jwt_key')
