@@ -1,58 +1,215 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
-from models import Checkout_Summary, Checkout, Order_T
+from models import Checkout_Summary, Checkout, Order_T, Products
 
 checkout_bp = Blueprint('checkout_bp', __name__, url_prefix='/checkout')
 
 
+# ---------------- Create Checkout (POST) ---------------- #
+@checkout_bp.route('/create', methods=['POST'])
 @checkout_bp.route('/', methods=['POST'])
 @jwt_required()
 def checkout():
     user_id = int(get_jwt_identity())
-    orders = Order_T.query.filter_by(user_id=user_id).all()
+    data = request.get_json()
 
+    orders = data.get("orders", [])
     if not orders:
-        return jsonify({'status': 'Cart is empty'}), 400
-
-    total = sum(item.price * item.quantity for item in orders)
+        return jsonify({'status': 'error', 'message': 'Cart is empty'}), 400
+    
+    total = sum((item.get('price') or 0) * (item.get('quantity') or 0) for item in orders)
     summary = Checkout_Summary(user_id=user_id, total_amount=total)
     db.session.add(summary)
-    db.session.flush()
+    db.session.flush()  # So summary.id becomes available
 
-    for order in orders:
-        item = Checkout(
+    for item in orders:
+        product_id = item.get('product_id')
+        if not product_id:
+            name = item.get('name') or item.get('product_name')
+            category = item.get('category')
+            raw_price = item.get('price')
+
+            # Normalize price before DB matching to avoid strict type mismatches.
+            try:
+                price = int(float(raw_price))
+            except (ValueError, TypeError):
+                price = raw_price
+
+            product = Products.query.filter_by(
+                product_name=name,
+                product_price=price,
+                product_category=category
+            ).first()
+
+            if not product and name and category:
+                product = Products.query.filter_by(
+                    product_name=name,
+                    product_category=category
+                ).first()
+
+            if not product and name:
+                product = Products.query.filter_by(product_name=name).first()
+
+            if product:
+                product_id = product.product_id
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': f"Unable to resolve product for '{name}'. Please refresh cart and try again."
+                }), 400
+
+        checkout = Checkout(
             checkout_id=summary.id,
-            product_id=None,
-            product_name=order.name,
-            unit_price=order.price,
-            quantity=order.quantity,
-            subtotal=order.price * order.quantity
+            product_id=product_id,
+            product_name=item.get('name') or item.get('product_name'),
+            unit_price=item.get('price'),
+            quantity=item.get('quantity'),
+            subtotal=(item.get('price') or 0) * (item.get('quantity') or 0)
         )
-        db.session.add(item)
+        db.session.add(checkout)
 
     db.session.commit()
 
-    # clear cart after checkout
-    for order in orders:
-        db.session.delete(order)
+    # Clear the user's cart from Order_T
+    Order_T.query.filter_by(user_id=user_id).delete()
     db.session.commit()
 
-    return jsonify({'status': 'Checkout completed successfully'}), 201
+    return jsonify({'status': 'success', 'message': 'Checkout completed successfully'}), 201
 
 
+# ---------------- Get All Orders (Admin) or User Orders ---------------- #
+@checkout_bp.route('/', methods=['GET'])
+@jwt_required()
+def get_checkouts():
+    user_id = int(get_jwt_identity())
+    location = request.args.get('location')  # 'cart' or None
+    
+    # Determine if user is admin (assuming admin has user_id == 1)
+    if user_id == 1:  # Admin sees all orders
+        summaries = Checkout_Summary.query.order_by(Checkout_Summary.created_at.desc()).all()
+    else:  # Regular users see only their orders
+        summaries = Checkout_Summary.query.filter_by(user_id=user_id).order_by(Checkout_Summary.created_at.desc()).all()
+    
+    # Get items for each summary
+    checkout_list = []
+    for summary in summaries:
+        summary_dict = summary.toCheckout_dict()
+        items = Checkout.query.filter_by(checkout_id=summary.id).all()
+        summary_dict['items'] = [item.to_dict() for item in items]
+        checkout_list.append(summary_dict)
+    
+    return jsonify({'checkout_list': checkout_list}), 200
+
+
+# ---------------- Update Order Status ---------------- #
+@checkout_bp.route('/<int:order_id>', methods=['PUT'])
+@jwt_required()
+def update_order_status(order_id):
+    user_id = int(get_jwt_identity())
+    
+    # Only admin can update status
+    if user_id != 1:
+        return jsonify({'status': 'Unauthorized: Admin access required'}), 401
+    
+    data = request.get_json()
+    new_status = data.get('status')
+    
+    if not new_status:
+        return jsonify({'status': 'error', 'message': 'Status is required'}), 400
+    
+    # Validate status
+    valid_statuses = ['pending', 'processing', 'shipping', 'delivered', 'cancelled']
+    if new_status not in valid_statuses:
+        return jsonify({'status': 'error', 'message': 'Invalid status'}), 400
+    
+    order = Checkout_Summary.query.get(order_id)
+    if not order:
+        return jsonify({'status': 'error', 'message': 'Order not found'}), 404
+    
+    order.status = new_status
+    db.session.commit()
+    
+    return jsonify({'status': 'success', 'message': 'Order status updated'}), 200
+
+
+# ---------------- Delete Order ---------------- #
+@checkout_bp.route('/<int:order_id>', methods=['DELETE'])
+@jwt_required()
+def delete_order(order_id):
+    user_id = int(get_jwt_identity())
+    
+    # Only admin can delete
+    if user_id != 1:
+        return jsonify({'status': 'Unauthorized: Admin access required'}), 401
+    
+    order = Checkout_Summary.query.get(order_id)
+    if not order:
+        return jsonify({'status': 'error', 'message': 'Order not found'}), 404
+    
+    # Delete associated checkout items first
+    Checkout.query.filter_by(checkout_id=order_id).delete()
+    db.session.delete(order)
+    db.session.commit()
+    
+    return jsonify({'status': 'success', 'message': 'Order deleted'}), 200
+
+
+# ---------------- Get Single Checkout ---------------- #
+@checkout_bp.route('/<int:order_id>', methods=['GET'])
+@jwt_required()
+def get_checkout(order_id):
+    user_id = int(get_jwt_identity())
+    order = Checkout_Summary.query.get(order_id)
+    if not order:
+        return jsonify({'status': 'error', 'message': 'Order not found'}), 404
+
+    if user_id != 1 and order.user_id != user_id:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+
+    order_dict = order.toCheckout_dict()
+    items = Checkout.query.filter_by(checkout_id=order.id).all()
+    order_dict['items'] = [item.to_dict() for item in items]
+
+    return jsonify({'status': 'success', 'order': order_dict}), 200
+
+
+# ---------------- History Summary ---------------- #
 @checkout_bp.route('/history', methods=['GET'])
 @jwt_required()
 def checkout_history():
     user_id = int(get_jwt_identity())
-    history = Checkout_Summary.query.filter_by(user_id=user_id).all()
-    return jsonify([h.toCheckout_dict() for h in history]), 200
+    history = Checkout_Summary.query.filter_by(user_id=user_id).order_by(Checkout_Summary.created_at.desc()).all()
+
+    return jsonify({
+        "status": "success",
+        "history": [h.toCheckout_dict() for h in history]
+    }), 200
 
 
-@checkout_bp.route('/details/<int:cid>', methods=['GET'])
+# ---------------- History Details ---------------- #
+@checkout_bp.route('/details/<int:id>', methods=['GET'])
 @jwt_required()
-def checkout_details(cid):
-    items = Checkout.query.filter_by(checkout_id=cid).all()
+def checkout_details(id):
+    user_id = int(get_jwt_identity())
+    order = Checkout_Summary.query.get(id)
+    
+    if not order:
+        return jsonify({'status': 'error', 'message': 'Order not found'}), 404
+    
+    # Non-admin users can only view their own orders
+    if user_id != 1 and order.user_id != user_id:
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    
+    order_dict = order.toCheckout_dict()
+    items = Checkout.query.filter_by(checkout_id=order.id).all()
+    
     if not items:
-        return jsonify({'status': 'No items found'}), 404
-    return jsonify([item.to_dict() for item in items]), 200
+        return jsonify({'status': 'error', 'message': 'No items found'}), 404
+    
+    order_dict['items'] = [item.to_dict() for item in items]
+    
+    return jsonify({
+        "status": "success",
+        "order": order_dict
+    }), 200

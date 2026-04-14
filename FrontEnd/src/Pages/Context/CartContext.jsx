@@ -8,7 +8,6 @@ const cartContext = createContext();
 export const CartProvider = ({children}) =>{
 
   const [cart, setCart] = useState([])
-  const [isAdmin, setIsAdmin] = useState(false)
   const [totalItems, setTotalItems] = useState(1)
   const token = localStorage.getItem('token')
   
@@ -27,11 +26,15 @@ export const CartProvider = ({children}) =>{
     return
   }
   else{
-
-    const decodeToken = jwtDecode(token)
-    const curDate = Date.now()
-    if(curDate>decodeToken.exp)
+    try {
+      const decodeToken = jwtDecode(token)
+      const curDate = Date.now() / 1000
+      if(curDate > decodeToken.exp) {
+        setCart([])
+      }
+    } catch {
       setCart([])
+    }
   }
   },[])
 

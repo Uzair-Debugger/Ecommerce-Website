@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { Loader2, Eye, EyeOff } from 'lucide-react'; // Added Eye icons
 // Assuming useCart context is still needed, though its internal logic is untouched
 import { useCart } from "../Context/CartContext"; 
+import { apiUrl } from "../../config/api";
 
 export default function Login() {
   // const { isAdmin, setIsAdmin } = useCart() // Kept as in original
@@ -27,7 +28,7 @@ export default function Login() {
     try {
       // { formData.email === 'uzair@gmail.com' ? setIsAdmin(true) : setIsAdmin(false) } // Logic preserved
 
-      const response = await fetch('http://127.0.0.1:5000/auth/login', {
+      const response = await fetch(apiUrl("/auth/login"), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -70,7 +71,7 @@ export default function Login() {
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
             <input
-              type="email"
+              // type="email"
               id="email"
               name="email"
               value={formData.email}

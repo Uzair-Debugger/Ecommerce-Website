@@ -10,6 +10,7 @@ import SalesOrder from './Pages/Body/Sales_order'
 import { CartProvider } from './Pages/Context/CartContext' 
 import Login from './Pages/Auth/Login'
 import Signup from './Pages/Auth/Signup'
+import OrderSummary from './Pages/Body/OrderSummary'
 import { Routes, Route } from 'react-router-dom'
 import { ToastContainer } from "react-toastify";
 import './App.css'
@@ -27,6 +28,7 @@ function App() {
           <Route path='/contactus' element={<ContactUs />} />
           <Route path='/aboutus' element={<AboutUs />} /> 
           <Route path='/salesorder' element={<SalesOrder />} /> 
+          <Route path='/ordersummary' element={<OrderSummary />} />
           <Route path='/addtocart' element={<AddToCart />} />
           <Route path='/login' element={<Login/>} />
           <Route path='/signup' element={<Signup/>} />

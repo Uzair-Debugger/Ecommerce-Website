@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useCart } from '../Pages/Context/CartContext';
 import { useNavigate } from "react-router-dom";
-import { nav } from "motion/react-client";
 import { toast } from "react-toastify";
+import { apiUrl } from "../config/api";
 
 const Card = ({ product }) => {
   const { addToCart } = useCart();
@@ -17,7 +17,7 @@ const Card = ({ product }) => {
     if (currentUser) {
 
       try {
-        const res = await fetch("http://127.0.0.1:5000/order", {
+        const res = await fetch(apiUrl("/order"), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

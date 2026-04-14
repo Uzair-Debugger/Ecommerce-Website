@@ -33,7 +33,7 @@ def login():
     if not user or not bcrypt.check_password_hash(user.password, password):
         return jsonify({'status': 'Invalid email or password'}), 401
 
-    role = "admin" if user.email == 'uzair@gmail.com' else "customer"
+    role = "admin" if user.email == 'smuzair14cse@gmail.com' else "customer"
     access_token = create_access_token(identity=str(user.id),
                                        additional_claims={"email": user.email, "role": role})
     return jsonify({'accessToken': access_token}), 200

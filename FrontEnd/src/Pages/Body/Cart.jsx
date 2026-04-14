@@ -3,23 +3,22 @@
 import { useEffect, useState } from "react";
 import { useCart } from "../Context/CartContext";
 import { jwtDecode } from "jwt-decode";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import OrderSummary from "./OrderSummary";
-import { Package, Truck, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { div } from "motion/react-client";
+import { Package, Truck, CheckCircle, Clock, XCircle, ChevronDown } from "lucide-react";
+import { apiUrl } from "../../config/api";
 
 function Cart() {
-  const { cart, setCart } = useCart([]);
+  const { setCart } = useCart([]);
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [allowed, setAllowed] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const [historyFilter, setHistoryFilter] = useState('all');
-  // const [expandedOrder, setExpandedOrder] = useState(null);
-  
+
 
   const totalPrice = orders.reduce((acc, order) => acc + (order.price * order.quantity), 0);
   const totalItems = orders.reduce((acc, order) => acc + order.quantity, 0);
@@ -58,7 +57,7 @@ function Cart() {
       if (decodeToken.exp > currentTime) {
         setAllowed(true);
 
-        fetch("http://localhost:5000/order/fetch", {
+        fetch(apiUrl("/order/fetch"), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -67,25 +66,28 @@ function Cart() {
         })
           .then((res) => res.json())
           .then((data) => {
-            if (data.status === "success") {
-              setOrders(data.orders);
-              if (token && decodeToken.exp > currentTime)
-                setCart(data.orders);
-              else
-                setCart([])
+            if (Array.isArray(data) && data.length > 0) {
+              setOrders(data);
+              console.log("Fetched Orders:", data);
+
+              if (token && decodeToken.exp > currentTime) {
+                setCart(data);
+              } else {
+                setCart([]);
+              }
             } else {
               setOrders([]);
-              setCart([])
+              setCart([]);
             }
           })
-          .catch((err) => console.error(err));
+          .catch((err) => console.error("Error fetching orders:", err));
 
         // Fetch order history
         fetchHistory(token);
       } else {
         setAllowed(false);
       }
-    } catch (error) {
+    } catch {
       console.log("Invalid Token");
       setAllowed(false);
     }
@@ -94,7 +96,7 @@ function Cart() {
   const fetchHistory = async (token) => {
     setHistoryLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/checkout', {
+      const response = await fetch(apiUrl("/checkout/history"), {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -106,7 +108,8 @@ function Cart() {
       }
 
       const data = await response.json();
-      setOrderHistory(data.checkout_list || []);
+      setOrderHistory(Array.isArray(data?.history) ? data.history : []);
+
     } catch (error) {
       console.error("Error:", error);
       setOrderHistory([]);
@@ -115,13 +118,9 @@ function Cart() {
     }
   };
 
-  const filteredOrderHistory = historyFilter === 'all'
-    ? orderHistory
-    : orderHistory.filter(order => order.status === historyFilter);
-
   const handleDelete = async (item_id) => {
     try {
-      const response = await fetch('http://localhost:5000/deleteItem', {
+      const response = await fetch(apiUrl(`/order/delete/${item_id}`), {
         method: 'DELETE',
         body: JSON.stringify({ id: item_id }),
         headers: {
@@ -156,8 +155,8 @@ function Cart() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/updateQuantity', {
-        method: 'POST',
+      const response = await fetch(apiUrl(`/order/update/${item_id}`), {
+        method: 'PUT',
         body: JSON.stringify({ id: item_id, quantity: newQuantity }),
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +198,7 @@ function Cart() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch('http://localhost:5000/checkout', {
+      const response = await fetch(apiUrl("/checkout/create"), {
         method: 'POST',
         body: JSON.stringify({
           orders: orders,
@@ -212,7 +211,8 @@ function Cart() {
       });
 
       if (!response.ok) {
-        toast.error("Checkout failed. Please try again.");
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || errorData.status || "Checkout failed. Please try again.");
         setIsCheckingOut(false);
         return;
       }
@@ -223,13 +223,12 @@ function Cart() {
         toast.success("Order placed successfully!");
         setOrders([]);
         setCart([]);
-        // Refetch history to update
         fetchHistory(token);
-        // You can redirect to order confirmation page here
-        // window.location.href = '/orders';
+        navigate("/ordersummary");
       } else {
         toast.error(data.message || "Checkout failed");
       }
+
 
     } catch (error) {
       toast.error("Network error. Please try again.");
@@ -489,15 +488,17 @@ function Cart() {
             onClick={() => setShowHistory(!showHistory)}
             className="flex items-center justify-between w-full mb-4 p-4 bg-white rounded-lg shadow-sm border"
           >
-            <h2 className="text-xl font-bold text-gray-900">Order History</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {historyLoading ? "Order History (Loading...)" : `Order History (${orderHistory.length})`}
+            </h2>
             <ChevronDown className={`w-5 h-5 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
           </button>
 
           {showHistory && (
             <div>
               <OrderSummary
-             
-                location = {'cart'}
+
+                location={'cart'}
               />
             </div>
           )}

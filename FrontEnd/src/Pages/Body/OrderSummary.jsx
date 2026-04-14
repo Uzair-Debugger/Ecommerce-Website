@@ -1,17 +1,15 @@
-//OrderSummary.jsx
-
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Package, Truck, CheckCircle, Clock, XCircle, Trash2, Eye, ChevronDown } from "lucide-react";
-import { toast } from "react-toastify";
 import { jwtDecode } from "jwt-decode";
+import { apiUrl } from "../../config/api";
 
 const SalesOrder = ({ location }) => {
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filter, setFilter] = useState('all');
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [inCart, setInCart] = useState(location ? true : false)
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [inCart, setInCart] = useState(location === "cart");
 
   const statusConfig = {
     pending: { label: "Pending", icon: Clock, color: "bg-yellow-100 text-yellow-800 border-yellow-300" },
@@ -24,12 +22,23 @@ const SalesOrder = ({ location }) => {
   const checkoutList = async () => {
     setLoading(true);
     const token = localStorage.getItem('token');
-    const decodeToken = jwtDecode(token)
-    if (decodeToken.role === 'admin') {
-      setIsAdmin(true)
+    
+    if (!token) {
+      console.log("No token found");
+      setLoading(false);
+      return;
     }
+
     try {
-      const response = await fetch(`http://localhost:5000/checkout?location=${location}`, {
+      const decodeToken = jwtDecode(token);
+      if (decodeToken.role === 'admin') {
+        setIsAdmin(true);
+        setInCart(false);
+      } else if (!location) {
+        setInCart(true);
+      }
+
+      const response = await fetch(apiUrl("/checkout/"), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -54,7 +63,7 @@ const SalesOrder = ({ location }) => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch(`http://localhost:5000/checkout/${orderId}`, {
+      const response = await fetch(apiUrl(`/checkout/${orderId}`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -65,12 +74,11 @@ const SalesOrder = ({ location }) => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          const data = await response.json()
-          toast.error(data.status)
-          return
+          const data = await response.json();
+          alert(data.status);
+          return;
         }
       }
-
 
       setCheckoutItems(items =>
         items.map(item =>
@@ -89,17 +97,18 @@ const SalesOrder = ({ location }) => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch(`http://localhost:5000/checkout/${orderId}`, {
+      const response = await fetch(apiUrl(`/checkout/${orderId}`), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (!response.ok) {
-        const data = await response.json()
-        if (response.status == 401)
-          toast.error(data.status)
-        console.error(data.status)
-        return
+        const data = await response.json();
+        if (response.status === 401) {
+          alert(data.status);
+        }
+        console.error(data.status);
+        return;
       }
       setCheckoutItems(items => items.filter(item => item.id !== orderId));
       if (selectedOrder?.id === orderId) setSelectedOrder(null);
@@ -143,7 +152,7 @@ const SalesOrder = ({ location }) => {
         {isOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 ">
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
               {Object.entries(statusConfig).map(([key, config]) => {
                 const Icon = config.icon;
                 return (
@@ -153,8 +162,7 @@ const SalesOrder = ({ location }) => {
                       updateOrderStatus(orderId, key);
                       setIsOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left ${currentStatus === key ? 'bg-gray-50' : ''
-                      }`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left ${currentStatus === key ? 'bg-gray-50' : ''}`}
                   >
                     <Icon size={16} className="text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">{config.label}</span>
@@ -180,8 +188,12 @@ const SalesOrder = ({ location }) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Orders</h1>
-          <p className="text-gray-600">Manage and track all customer orders</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {inCart ? "Order Summary" : "Sales Orders"}
+          </h1>
+          <p className="text-gray-600">
+            {inCart ? "Track your recent checkout orders" : "Manage and track all customer orders"}
+          </p>
         </div>
 
         <div className="mb-6 flex gap-2 flex-wrap">
@@ -213,7 +225,7 @@ const SalesOrder = ({ location }) => {
             {filteredItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all "
+                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all"
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
@@ -255,7 +267,6 @@ const SalesOrder = ({ location }) => {
                           <Trash2 size={20} className="text-red-600" />
                         </button>
                       )}
-
                     </div>
                   </div>
 
