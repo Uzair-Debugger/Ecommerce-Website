@@ -565,21 +565,6 @@ def manage_checkout(order_id):
             return jsonify({"status":"Sorry! You are unauthorized"}), 401
 
 
-# Helper method for Checkout model (add this to your model)
-# class Checkout(db.Model):
-#     # ... existing fields ...
-#     
-#     def to_dict(self):
-#         return {
-#             'id': self.id,
-#             'checkout_id': self.checkout_id,
-#             'product_id': self.product_id,
-#             'product_name': self.product_name,
-#             'unit_price': self.unit_price,
-#             'quantity': self.quantity,
-#             'subtotal': self.subtotal
-#         }
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

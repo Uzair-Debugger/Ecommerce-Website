@@ -156,12 +156,30 @@ const Shop = () => {
       try {
         const decodeToken = jwtDecode(token);
         const currentTime = Date.now() / 1000;
-        setIsAdmin(decodeToken.role === "admin" && currentTime < decodeToken.exp);
-      } catch {
+        
+        console.log(`Token Role: ${decodeToken.role}`);
+        console.log(`Current Time: ${currentTime}`);
+        console.log(`Token Exp: ${decodeToken.exp}`);
+        console.log(`Token Expired?: ${currentTime > decodeToken.exp}`);
+        
+        const isAdminUser = decodeToken.role === "admin" && currentTime < decodeToken.exp;
+        console.log(`Setting isAdmin to: ${isAdminUser}`);
+        
+        setIsAdmin(isAdminUser);
+      } catch (err) {
+        console.error("Token decode error:", err);
         setIsAdmin(false);
       }
+    } else {
+      console.log("No token found");
+      setIsAdmin(false);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, token]);
+
+  // Debug: Log isAdmin after it updates
+  useEffect(() => {
+    console.log(`isAdmin state updated to: ${isAdmin}`);
+  }, [isAdmin]);
 
   // ✅ Add to Cart
   const addToCart = async (id, name, price, category) => {

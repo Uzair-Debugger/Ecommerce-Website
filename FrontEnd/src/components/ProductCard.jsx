@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useCart } from '../Pages/Context/CartContext';
 import { useNavigate } from "react-router-dom";
-import { nav } from "motion/react-client";
 import { toast } from "react-toastify";
 
 const Card = ({ product }) => {

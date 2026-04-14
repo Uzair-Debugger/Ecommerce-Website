@@ -7,7 +7,6 @@ import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import OrderSummary from "./OrderSummary";
 import { Package, Truck, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { div } from "motion/react-client";
 
 function Cart() {
   const { cart, setCart } = useCart([]);
@@ -19,7 +18,7 @@ function Cart() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyFilter, setHistoryFilter] = useState('all');
   // const [expandedOrder, setExpandedOrder] = useState(null);
-  
+
 
   const totalPrice = orders.reduce((acc, order) => acc + (order.price * order.quantity), 0);
   const totalItems = orders.reduce((acc, order) => acc + order.quantity, 0);
@@ -67,18 +66,21 @@ function Cart() {
         })
           .then((res) => res.json())
           .then((data) => {
-            if (data.status === "success") {
-              setOrders(data.orders);
-              if (token && decodeToken.exp > currentTime)
-                setCart(data.orders);
-              else
-                setCart([])
+            if (Array.isArray(data) && data.length > 0) {
+              setOrders(data);
+              console.log("Fetched Orders:", data);
+
+              if (token && decodeToken.exp > currentTime) {
+                setCart(data);
+              } else {
+                setCart([]);
+              }
             } else {
               setOrders([]);
-              setCart([])
+              setCart([]);
             }
           })
-          .catch((err) => console.error(err));
+          .catch((err) => console.error("Error fetching orders:", err));
 
         // Fetch order history
         fetchHistory(token);
@@ -94,7 +96,7 @@ function Cart() {
   const fetchHistory = async (token) => {
     setHistoryLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/checkout', {
+      const response = await fetch('http://localhost:5000/checkout/history', {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -106,7 +108,8 @@ function Cart() {
       }
 
       const data = await response.json();
-      setOrderHistory(data.checkout_list || []);
+      setOrderHistory(Array.isArray(data) ? data : []);
+
     } catch (error) {
       console.error("Error:", error);
       setOrderHistory([]);
@@ -121,7 +124,7 @@ function Cart() {
 
   const handleDelete = async (item_id) => {
     try {
-      const response = await fetch('http://localhost:5000/deleteItem', {
+      const response = await fetch(`http://localhost:5000/order/delete/${item_id}`, {
         method: 'DELETE',
         body: JSON.stringify({ id: item_id }),
         headers: {
@@ -156,8 +159,8 @@ function Cart() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/updateQuantity', {
-        method: 'POST',
+      const response = await fetch(`http://localhost:5000/order/update/${item_id}`, {
+        method: 'PUT',
         body: JSON.stringify({ id: item_id, quantity: newQuantity }),
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +202,7 @@ function Cart() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch('http://localhost:5000/checkout', {
+      const response = await fetch('http://localhost:5000/checkout/create', {
         method: 'POST',
         body: JSON.stringify({
           orders: orders,
@@ -223,13 +226,11 @@ function Cart() {
         toast.success("Order placed successfully!");
         setOrders([]);
         setCart([]);
-        // Refetch history to update
         fetchHistory(token);
-        // You can redirect to order confirmation page here
-        // window.location.href = '/orders';
       } else {
         toast.error(data.message || "Checkout failed");
       }
+
 
     } catch (error) {
       toast.error("Network error. Please try again.");
@@ -496,8 +497,8 @@ function Cart() {
           {showHistory && (
             <div>
               <OrderSummary
-             
-                location = {'cart'}
+
+                location={'cart'}
               />
             </div>
           )}

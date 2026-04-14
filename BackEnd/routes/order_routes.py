@@ -11,10 +11,11 @@ order_bp = Blueprint('order_bp', __name__, url_prefix='/order')
 def add_to_order():
     user_id = int(get_jwt_identity())
     data = request.json
-    product_id = data.get('product_id')
+    product_id = data.get('id')
     quantity = data.get('quantity', 1)
 
     product = Products.query.get(product_id)
+    print(data)
     if not product:
         return jsonify({'status': 'Product not found'}), 404
 
@@ -36,6 +37,7 @@ def add_to_order():
 def fetch_orders():
     user_id = int(get_jwt_identity())
     orders = Order_T.query.filter_by(user_id=user_id).all()
+    
     return jsonify([order.to_dict() for order in orders]), 200
 
 
@@ -62,7 +64,6 @@ def update_quantity(item_id):
     order_item = Order_T.query.get(item_id)
     if not order_item:
         return jsonify({'status': 'Item not found'}), 404
-
     order_item.quantity = new_qty
     db.session.commit()
     return jsonify({'status': 'Quantity updated successfully'}), 200

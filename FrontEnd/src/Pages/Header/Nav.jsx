@@ -58,7 +58,7 @@ const Nav = () => {
       if (decodeToken.exp > currentTime) {
         setIsTokenValid(true);
 
-        fetch("http://localhost:5000/fetchOrders", {
+        fetch("http://localhost:5000/order/fetch", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
