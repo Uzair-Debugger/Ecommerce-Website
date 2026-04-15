@@ -1,4 +1,5 @@
 from extensions import db
+from supabase_client import get_public_url
 
 class Products(db.Model):
     product_id = db.Column(db.Integer, primary_key=True)
@@ -13,5 +14,6 @@ class Products(db.Model):
             "product_name": self.product_name,
             "file_name": self.file_name,
             "product_price": self.product_price,
-            "product_category": self.product_category
+            "product_category": self.product_category,
+            "image": get_public_url(self.file_name) if self.file_name else None
         }

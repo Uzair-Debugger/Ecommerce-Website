@@ -1,10 +1,9 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from werkzeug.utils import secure_filename
-import os
 
 from extensions import db
 from models import Products, Order_T, User
+from supabase_client import delete_image, upload_image
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -38,12 +37,11 @@ def add_product_root():
     if not allowed_file(file.filename):
         return jsonify({'status': 'Invalid file type or no file uploaded!'}), 400
 
-    filename = secure_filename(file.filename)
-    file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+    storage_path = upload_image(file)
 
     new_product = Products(
         product_name=name,
-        file_name=filename,
+        file_name=storage_path,
         product_price=price_int,
         product_category=category,
     )
@@ -65,9 +63,11 @@ def change_product_root(id):
         return jsonify({'status': 'Product not found!'}), 404
 
     if request.method == 'DELETE':
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], product.file_name)
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if product.file_name:
+            try:
+                delete_image(product.file_name)
+            except Exception:
+                pass
         db.session.delete(product)
         db.session.commit()
         return jsonify({'status': 'Product Deleted'}), 200
@@ -89,12 +89,14 @@ def change_product_root(id):
     if file:
         if not allowed_file(file.filename):
             return jsonify({'status': 'Invalid file type'}), 400
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-        old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], product.file_name)
-        if os.path.exists(old_path):
-            os.remove(old_path)
-        product.file_name = filename
+
+        if product.file_name:
+            try:
+                delete_image(product.file_name)
+            except Exception:
+                pass
+
+        product.file_name = upload_image(file)
 
     db.session.commit()
     return jsonify({'status': 'Product Updated!'}), 200
