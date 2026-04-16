@@ -29,3 +29,5 @@ class Config:
     PUBLIC_BASE_URL = os.getenv('PUBLIC_BASE_URL', 'http://localhost:5000').rstrip('/')
     CORS_ORIGINS = [origin.strip() for origin in os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',') if origin.strip()]
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+

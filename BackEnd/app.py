@@ -42,11 +42,20 @@ def create_app():
     app.register_blueprint(checkout_bp)
     app.register_blueprint(compat_bp)
 
-    #  Serve uploaded images
+    # Serve uploaded images from Supabase storage
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
-        upload_folder = app.config['UPLOAD_FOLDER']
-        return send_from_directory(upload_folder, filename)
+        from supabase_client import supabase
+        # Assuming 'uploads' is the bucket name
+        bucket_name = 'uploads'
+        # Download the file from Supabase storage
+        res = supabase.storage.from_(bucket_name).download(filename)
+        if res.status_code == 200:
+            # Return the file as a response
+            from flask import Response
+            return Response(res.content, mimetype='application/octet-stream')
+        else:
+            return jsonify({'error': 'File not found in Supabase storage'}), 404
 
     # Test route
     @app.route('/')

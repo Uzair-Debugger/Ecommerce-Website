@@ -1,9 +1,8 @@
 # routes/product_routes.py
-from flask import Blueprint, request, jsonify, current_app
-from werkzeug.utils import secure_filename
+from flask import Blueprint, request, jsonify
 from models import Products
 from extensions import db
-import os
+from supabase_client import delete_image, get_public_url, upload_image
 
 product_bp = Blueprint('product_bp', __name__, url_prefix='/product')
 
@@ -27,21 +26,18 @@ def add_product():
     if not allowed_file(file.filename):
         return jsonify({'status': 'Invalid file type'}), 400
 
-    upload_folder = current_app.config['UPLOAD_FOLDER']
-    filename = secure_filename(file.filename)
-    file_path = os.path.join(upload_folder, filename)
-    file.save(file_path)
+    storage_path = upload_image(file)
 
     new_product = Products(
         product_name=name,
-        file_name=filename,
+        file_name=storage_path,
         product_price=price,
         product_category=category
     )
     db.session.add(new_product)
     db.session.commit()
 
-    image_url = f"{current_app.config['PUBLIC_BASE_URL']}/uploads/{filename}"
+    image_url = get_public_url(storage_path)
 
     return jsonify({
         'status': 'Product added successfully',
@@ -60,7 +56,7 @@ def show_products():
 
     product_list = []
     for p in products:
-        image_url = f"{current_app.config['PUBLIC_BASE_URL']}/uploads/{p.file_name}" if p.file_name else None
+        image_url = get_public_url(p.file_name) if p.file_name else None
         product_list.append({
             'product_id': p.product_id,
             'product_name': p.product_name,
@@ -80,9 +76,11 @@ def delete_product(pid):
     if not product:
         return jsonify({'status': 'Product not found'}), 404
 
-    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], product.file_name)
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    if product.file_name:
+        try:
+            delete_image(product.file_name)
+        except Exception:
+            pass
 
     db.session.delete(product)
     db.session.commit()
@@ -109,13 +107,13 @@ def update_product(pid):
         product.product_category = category
 
     if file and allowed_file(file.filename):
-        old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], product.file_name)
-        if os.path.exists(old_path):
-            os.remove(old_path)
+        if product.file_name:
+            try:
+                delete_image(product.file_name)
+            except Exception:
+                pass
 
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-        product.file_name = filename
+        product.file_name = upload_image(file)
 
     db.session.commit()
 
