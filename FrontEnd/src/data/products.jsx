@@ -51,29 +51,29 @@ export const categories = [
 ]
 
 export const stats = [
-    { number: "50K+", label: "Happy Customers", subtitle: "worldwide satisfaction", icon: Users },
-    { number: "1.2M+", label: "Products Sold", subtitle: "quality electronics delivered", icon: Award },
-    { number: "24/7", label: "Customer Support", subtitle: "always here to help", icon: Clock },
-    { number: "98%", label: "Customer Rating", subtitle: "excellent service record", icon: Star }
-  ];
+  { number: "50K+", label: "Happy Customers", subtitle: "worldwide satisfaction", icon: Users },
+  { number: "1.2M+", label: "Products Sold", subtitle: "quality electronics delivered", icon: Award },
+  { number: "24/7", label: "Customer Support", subtitle: "always here to help", icon: Clock },
+  { number: "98%", label: "Customer Rating", subtitle: "excellent service record", icon: Star }
+];
 
 export const allFeatures = [
-    {
-      title: "Premium Quality Electronics",
-      description: "We source only the highest quality digital watches, mobile accessories, and audio devices from trusted manufacturers worldwide.",
-      image: Img1,
-      link: "Explore Products"
-    },
-    {
-      title: "Expert Technical Support",
-      description: "Our team of electronics specialists provides comprehensive support and guidance to help you choose the perfect tech accessories.",
-      image: Img2,
-      link: "Get Support"
-    },
-    {
-      title: "Fast & Secure Delivery",
-      description: "Experience lightning-fast shipping with secure packaging, ensuring your electronics arrive in perfect condition every time.",
-      image: Img3,
-      link: "Shipping Info"
-    }
-  ];
+  {
+    title: "Premium Quality Electronics",
+    description: "We source only the highest quality digital watches, mobile accessories, and audio devices from trusted manufacturers worldwide.",
+    image: Img1,
+    link: "Explore Products"
+  },
+  {
+    title: "Expert Technical Support",
+    description: "Our team of electronics specialists provides comprehensive support and guidance to help you choose the perfect tech accessories.",
+    image: Img2,
+    link: "Get Support"
+  },
+  {
+    title: "Fast & Secure Delivery",
+    description: "Experience lightning-fast shipping with secure packaging, ensuring your electronics arrive in perfect condition every time.",
+    image: Img3,
+    link: "Shipping Info"
+  }
+];

@@ -22,6 +22,7 @@ const Shop = () => {
   const [category, setCategory] = useState("");
   const [file, setFile] = useState(null);
   const [editProduct, setEditProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -113,6 +114,7 @@ const Shop = () => {
 
   // ✅ Fetch Products
   const fetchProducts = async (category = "") => {
+    setLoading(true);
     const url = category
       ? apiUrl(`/product/show?category=${encodeURIComponent(category)}`)
       : apiUrl("/product/show");
@@ -140,6 +142,8 @@ const Shop = () => {
     } catch (error) {
       toast.error("Network/server error!");
       console.error("Error!", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -466,7 +470,20 @@ const Shop = () => {
       {/* Products Grid */}
       <div className="px-6 pb-12">
         <div className="max-w-7xl mx-auto">
-          {allProducts.length > 0 ? (
+          {loading ? (
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse">
+                  <div className="w-full h-56 bg-gray-200" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-5 bg-gray-200 rounded-full w-3/4" />
+                    <div className="h-4 bg-gray-200 rounded-full w-1/2" />
+                    <div className="h-10 bg-gray-200 rounded-lg w-full mt-4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : allProducts.length > 0 ? (
             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {allProducts.map((item, index) => (
                 <div
